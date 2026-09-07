@@ -1,26 +1,25 @@
 # Copyright (C) 2013-2016 Freescale Semiconductor
-# Copyright 2017-2023 NXP
+# Copyright (C) 2017-2023,2025-2026 NXP
 # Released under the MIT license (see COPYING.MIT for the terms)
 
+SUMMARY = "i.MX VPU wrapper library"
 DESCRIPTION = "Freescale Multimedia VPU wrapper"
-LICENSE = "Proprietary"
+HOMEPAGE = "https://github.com/NXP/imx-vpuwrap"
 SECTION = "multimedia"
-LIC_FILES_CHKSUM = "file://COPYING;md5=ca53281cc0caa7e320d4945a896fb837"
+LICENSE = "BSD-3-Clause"
+LIC_FILES_CHKSUM = "file://LICENSE.txt;md5=6f862c6751ebcaa393467694c7b0c69a"
 
 DEPENDS = "virtual/imxvpu"
 DEPENDS:append:mx8mp-nxp-bsp = " imx-vpu-hantro-vc"
 
-SRC_URI = " \
-    git://github.com/NXP/imx-vpuwrap.git;protocol=https;branch=${SRCBRANCH} \
-    file://0001-vpu_wrapper_hantro_encoder-add-sys-time.h-for-gettim.patch \
-    file://0001-vpu_wrapper_hantro_VCencoder-add-sys-time.h-for-gett.patch \
-"
-SRCBRANCH = "MM_04.09.01_2408_L6.6.y"
-SRCREV = "c13069d239cae314adc3651df25b96afa46cb434"
-
-S = "${WORKDIR}/git"
+SRC_URI = "${IMX_VPUWRAP_SRC};branch=${SRCBRANCH}"
+IMX_VPUWRAP_SRC ?= "git://github.com/NXP/imx-vpuwrap.git;protocol=https"
+SRCBRANCH = "MM_04.11.00_2605_L6.18.20"
+SRCREV = "49adeca51746d6b3f89a32687c98df61a56a52ae"
 
 inherit autotools pkgconfig
+
+CFLAGS += "-Wno-error=implicit-function-declaration"
 
 do_install:append() {
     # FIXME: Drop examples for now

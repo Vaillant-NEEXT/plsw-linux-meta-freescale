@@ -16,7 +16,7 @@ MACHINE_FEATURES += "pci wifi bluetooth bcm43455 bcm4356 nxp8987-sdio"
 # and pin it to NXP BSP only
 # OP-TEE is also applicable to NXP BSP, mainline BSP seems not to have
 # a full support for it yet.
-MACHINE_FEATURES:append:use-nxp-bsp = " optee jailhouse bcm4359"
+MACHINE_FEATURES:append:use-nxp-bsp = " optee jailhouse bcm4359 dpdk nxpwifi-all-sdio"
 
 KERNEL_DEVICETREE = " \
     freescale/${KERNEL_DEVICETREE_BASENAME}.dtb \
@@ -33,7 +33,7 @@ UBOOT_DTB_NAME = "${KERNEL_DEVICETREE_BASENAME}.dtb"
 UBOOT_SUFFIX = "bin"
 
 UBOOT_CONFIG ??= "sd"
-UBOOT_CONFIG[sd]       = "${UBOOT_CONFIG_BASENAME}_defconfig,sdcard"
+UBOOT_CONFIG[sd]       = "${UBOOT_CONFIG_BASENAME}_defconfig"
 
 SPL_BINARY = "spl/u-boot-spl.bin"
 
@@ -73,3 +73,17 @@ TEE_LOAD_ADDR = "0xbe000000"
 
 # Add additional firmware
 MACHINE_FIRMWARE:append = " linux-firmware-ath10k"
+
+WKS_FILE_DEPENDS:append:imx-nxp-bsp = " imx-m4-demos"
+IMAGE_BOOT_FILES:append:imx-nxp-bsp = " \
+    mcore-demos/imx8mm_m4_TCM_hello_world.bin \
+    mcore-demos/imx8mm_m4_TCM_rpmsg_lite_pingpong_rtos_linux_remote.bin \
+    mcore-demos/imx8mm_m4_TCM_rpmsg_lite_str_echo_rtos.bin \
+    mcore-demos/imx8mm_m4_TCM_sai_low_power_audio.bin \
+    mcore-demos/imx8mm_m4_TCM_sai_low_power_audio_wm8524.bin \
+    mcore-demos/imx8mm_m4_DDR_hello_world.bin \
+    mcore-demos/imx8mm_m4_DDR_rpmsg_lite_pingpong_rtos_linux_remote.bin \
+    mcore-demos/imx8mm_m4_DDR_rpmsg_lite_str_echo_rtos.bin \
+    mcore-demos/imx8mm_m4_DDR_sai_low_power_audio.bin \
+    mcore-demos/imx8mm_m4_DDR_sai_low_power_audio_wm8524.bin \
+"

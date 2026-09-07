@@ -2,6 +2,7 @@
 
 SUMMARY = "NXP i.MX SECO library"
 DESCRIPTION = "Library for NXP i.MX Security Controller Subsystem"
+HOMEPAGE = "https://github.com/NXP/imx-seco-libs"
 SECTION = "base"
 LICENSE = "Proprietary"
 LIC_FILES_CHKSUM = "file://EULA.txt;md5=d3c315c6eaa43e07d8c130dc3a04a011"
@@ -15,8 +16,6 @@ SRC_URI = "git://github.com/NXP/imx-seco-libs.git;protocol=https;branch=${SRCBRA
            file://0001-add-v2x_test-to-the-installed-binaries.patch \
            file://0001-Fix-return-value-of-void-functions.patch"
 SRCREV = "273553f207425f773400be7a7f3a7c425d892d6f"
-
-S = "${WORKDIR}/git"
 
 TARGET_CC_ARCH += "${LDFLAGS}"
 

@@ -1,46 +1,53 @@
 # Copyright (C) 2012-2016 O.S. Systems Software LTDA.
 # Copyright (C) 2013-2016 Freescale Semiconductor
-# Copyright (C) 2017-2022 NXP
+# Copyright (C) 2017-2022,2026 NXP
 
 SUMMARY = "Test programs for i.MX BSP"
 DESCRIPTION = "Unit tests for the i.MX BSP"
+HOMEPAGE = "https://github.com/nxp-imx/imx-test"
 SECTION = "base"
 LICENSE = "GPL-2.0-or-later"
+# The license text is not shipped in the source tree, so reference the
+# common-licenses copy; this is intentionally a local (non-remote) file.
+# nooelint: oelint.var.licenseremotefile
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/GPL-2.0-or-later;md5=fed54355545ffd980b814dab4a3b312c"
 
 DEPENDS = "alsa-lib freetype libdrm"
 DEPENDS:append:imxvpu = " virtual/imxvpu"
-DEPENDS:append:mx6-nxp-bsp    = " imx-lib"
-DEPENDS:append:mx7-nxp-bsp    = " imx-lib"
+DEPENDS:append:mx6-nxp-bsp = " imx-lib"
+DEPENDS:append:mx7-nxp-bsp = " imx-lib"
 DEPENDS:append:mx8ulp-nxp-bsp = " imx-lib"
-DEPENDS:append:mx93-nxp-bsp   = " imx-lib"
+DEPENDS:append:mx93-nxp-bsp = " imx-lib"
+DEPENDS:append:mx943-nxp-bsp = " imx-lib"
 
 PE = "1"
 PV = "7.0+${SRCPV}"
 
-SRC_URI = "git://github.com/nxp-imx/imx-test.git;protocol=https;branch=${SRCBRANCH} \
+SRC_URI = "${IMXTEST_SRC};branch=${SRCBRANCH} \
            file://memtool_profile"
-SRCBRANCH = "lf-6.6.3_1.0.0"
-SRCREV = "8a1fa37664a1e470cf86f1185c08e265e4602a9b"
 
-S = "${WORKDIR}/git"
+IMXTEST_SRC ?= "git://github.com/nxp-imx/imx-test.git;protocol=https"
+SRCBRANCH = "lf-6.18.2_1.0.0"
+SRCREV = "e5dad74f8defd6108cac5ba21bf4ff268445d3ff"
 
 inherit module-base use-imx-headers
 
 INHIBIT_PACKAGE_STRIP = "1"
 INHIBIT_PACKAGE_DEBUG_SPLIT = "1"
 
-PLATFORM:mx6q-nxp-bsp  = "IMX6Q"
+PLATFORM:mx6q-nxp-bsp = "IMX6Q"
 PLATFORM:mx6dl-nxp-bsp = "IMX6Q"
 PLATFORM:mx6sl-nxp-bsp = "IMX6SL"
 PLATFORM:mx6sll-nxp-bsp = "IMX6SL"
 PLATFORM:mx6sx-nxp-bsp = "IMX6SX"
 PLATFORM:mx6ul-nxp-bsp = "IMX6UL"
-PLATFORM:mx7d-nxp-bsp  = "IMX7D"
+PLATFORM:mx7d-nxp-bsp = "IMX7D"
 PLATFORM:mx7ulp-nxp-bsp = "IMX7D"
 PLATFORM:mx8-nxp-bsp = "IMX8"
 PLATFORM:mx8ulp-nxp-bsp = "IMX8ULP"
+PLATFORM:mx91-nxp-bsp = "IMX8"
 PLATFORM:mx93-nxp-bsp = "IMX8ULP"
+PLATFORM:mx943-nxp-bsp = "IMX8ULP"
 PLATFORM:mx95-nxp-bsp = "IMX8"
 
 PARALLEL_MAKE = "-j 1"
@@ -48,7 +55,7 @@ EXTRA_OEMAKE += "${PACKAGECONFIG_CONFARGS}"
 
 PACKAGECONFIG = "${@bb.utils.contains('DISTRO_FEATURES', 'x11', 'x11', '', d)}"
 PACKAGECONFIG:append:imxvpu = " vpu"
-PACKAGECONFIG:append:mx8m-nxp-bsp   = " swpdm"
+PACKAGECONFIG:append:mx8m-nxp-bsp = " swpdm"
 
 PACKAGECONFIG[x11] = ",,libx11 libxdamage libxrender libxrandr"
 PACKAGECONFIG[vpu] = "HAS_VPU=true,HAS_VPU=false,virtual/imxvpu"
@@ -81,6 +88,6 @@ do_install() {
 }
 
 FILES:${PN} += "/unit_tests ${ROOT_HOME}/.profile"
-RDEPENDS:${PN} = "bash"
-
 FILES:${PN}-dbg += "/unit_tests/.debug"
+
+RDEPENDS:${PN} = "bash"

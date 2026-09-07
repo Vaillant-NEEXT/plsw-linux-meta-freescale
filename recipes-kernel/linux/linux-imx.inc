@@ -17,9 +17,7 @@ PROVIDES += "linux-mfgtool"
 # Set the PV to the correct kernel version to satisfy the kernel version sanity check
 PV = "${LINUX_VERSION}+git${SRCPV}"
 
-SRC_URI = "git://github.com/nxp-imx/linux-imx;protocol=https;branch=${SRCBRANCH}"
-
-S = "${WORKDIR}/git"
+SRC_URI = "git://github.com/nxp-imx/linux-imx.git;protocol=https;branch=${SRCBRANCH}"
 
 # Tell to kernel class that we would like to use our defconfig to configure the kernel.
 # Otherwise, the --allnoconfig would be used per default which leads to mis-configured
@@ -33,7 +31,7 @@ S = "${WORKDIR}/git"
 # specified, and should be restored with their defaults, not set to 'n'.
 # To properly expand a defconfig like this, we need to specify: KCONFIG_MODE="--alldefconfig"
 # in the kernel recipe include.
-KCONFIG_MODE="--alldefconfig"
+KCONFIG_MODE = "--alldefconfig"
 
 # We need to pass it as param since kernel might support more then one
 # machine, with different entry points
@@ -62,5 +60,6 @@ python kernel_devicetree_32bit_compatibility_update() {
         bb.warn("Updating KERNEL_DEVICETREE, removing sub-folders for older kernel. Use -D for more details. Set KERNEL_DEVICETREE_32BIT_COMPATIBILITY_UPDATE = \"0\" to disable.")
         d.setVar('KERNEL_DEVICETREE', output)
 }
+kernel_devicetree_32bit_compatibility_update[doc] = "Strip device tree sub-folders from KERNEL_DEVICETREE for older 32-bit kernels that keep the dtb files flat"
 addhandler kernel_devicetree_32bit_compatibility_update
 kernel_devicetree_32bit_compatibility_update[eventmask] = "bb.event.RecipeParsed"

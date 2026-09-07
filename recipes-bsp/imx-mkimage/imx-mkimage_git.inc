@@ -1,14 +1,16 @@
-# Copyright 2017-2023 NXP
+# Copyright 2017-2026 NXP
 
-DEPENDS = "zlib-native openssl-native"
+# Canonical DEPENDS for this native tool; the require sits in the .bb so oelint
+# sees this base assignment as "after include".
+# nooelint: oelint.vars.dependsappend
+DEPENDS = "openssl-native zlib-native"
 
-SRC_URI = "git://github.com/nxp-imx/imx-mkimage.git;protocol=https;branch=${SRCBRANCH} \
+SRC_URI = "${IMX_MKIMAGE_SRC};branch=${SRCBRANCH} \
            file://0001-iMX8M-soc.mak-use-native-mkimage-from-sysroot.patch \
 "
-SRCBRANCH = "lf-6.6.36_2.1.0"
-SRCREV = "4622115cbc037f79039c4522faeced4aabea986b"
-
-S = "${WORKDIR}/git"
+IMX_MKIMAGE_SRC ?= "git://github.com/nxp-imx/imx-mkimage.git;protocol=https"
+SRCBRANCH = "lf-6.18.2_1.0.0"
+SRCREV = "c0debd7c0b4a125bd3ca66bc68f1915882b2bb62"
 
 BOOT_TOOLS = "imx-boot-tools"
 SYSROOT_DIRS += "/boot"

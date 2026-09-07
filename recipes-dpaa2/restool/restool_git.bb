@@ -1,13 +1,12 @@
 SUMMARY = "DPAA2 Resource Manager Tool"
+DESCRIPTION = "Userspace resource manager tool for DPAA2 objects on NXP QorIQ SoCs."
+HOMEPAGE = "https://github.com/nxp-qoriq/restool"
+SECTION = "base"
 LICENSE = "BSD-3-Clause | GPL-2.0-or-later"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=83af78c71766dd5fb1c1c3dd64a75ee7"
 
-SRC_URI = "git://github.com/nxp-qoriq/restool;protocol=https;nobranch=1 \
-    file://disable-manpage-generation.patch \
-"
-SRCREV = "d9fbfc68018c8dbe33bdf236dc6b4c02f15aa6e1"
-
-S = "${WORKDIR}/git"
+SRC_URI = "git://github.com/nxp-qoriq/restool;protocol=https;nobranch=1"
+SRCREV = "df31aaa46b77e3918f893ca08b1e63871ae880b6"
 
 inherit bash-completion
 

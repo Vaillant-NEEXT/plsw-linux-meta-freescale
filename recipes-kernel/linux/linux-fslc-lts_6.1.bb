@@ -6,9 +6,11 @@
 
 SUMMARY = "FSL Community BSP Linux LTS based kernel with backported features and fixes"
 DESCRIPTION = "Linux kernel based on LTS kernel used by FSL Community BSP in order to \
-provide support for some backported features and fixes, or because it was applied in upstream \
-and will not become part of a LTS version, or because it is not applicable for \
-upstreaming in any form."
+               provide support for some backported features and fixes, or because it was applied in upstream \
+               and will not become part of a LTS version, or because it is not applicable for \
+               upstreaming in any form."
+HOMEPAGE = "https://github.com/Freescale/linux-fslc"
+SECTION = "kernel"
 
 require linux-imx.inc
 
@@ -21,10 +23,10 @@ SRC_URI = "git://github.com/Freescale/linux-fslc.git;branch=${KBRANCH};protocol=
 #
 # LINUX_VERSION define should match to the kernel version referenced by SRC_URI and
 # should be updated once patchlevel is merged.
-LINUX_VERSION = "6.1.72"
+LINUX_VERSION = "6.1.111"
 
 KBRANCH = "6.1.x+fslc"
-SRCREV = "b80c9dede70132da3ae7feb949fe0803aad3db24"
+SRCREV = "195925841506cd58552d73ebabadd08d6016e4c6"
 
 KBUILD_DEFCONFIG:mx5-generic-bsp = "imx_v6_v7_defconfig"
 KBUILD_DEFCONFIG:mx5-generic-bsp = "imx_v6_v7_defconfig"

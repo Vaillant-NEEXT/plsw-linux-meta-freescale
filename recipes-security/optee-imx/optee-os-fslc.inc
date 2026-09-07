@@ -1,90 +1,87 @@
-# Copyright (C) 2017-2021,2024 NXP
+# Copied from meta-arm/recipes-security/optee/optee-os.inc.
+# See: https://github.com/nxp-imx/imx-manifest/blob/imx-linux-whinlatter/imx-6.18.2-1.0.0.xml#L32
 
-SUMMARY = "OPTEE OS"
-DESCRIPTION = "OPTEE OS"
+SUMMARY = "OP-TEE Trusted OS"
+DESCRIPTION = "Open Portable Trusted Execution Environment - Trusted side of the TEE"
+HOMEPAGE = "https://www.op-tee.org/"
+SECTION = "base"
+
 LICENSE = "BSD-2-Clause"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=c1f21c4f72f372ef38a5a4aee55ec173"
 
+inherit deploy python3native
 require optee-fslc.inc
 
-DEPENDS += "python3-pyelftools-native u-boot-mkimage-native"
-DEPENDS:append:toolchain-clang = " compiler-rt"
+CVE_PRODUCT = "linaro:op-tee op-tee:op-tee_os"
 
-inherit deploy autotools
+DEPENDS:append = " python3-cryptography-native python3-pyelftools-native"
 
-# Optee-os can be built for 32 bits and 64 bits at the same time
-# as long as the compilers are correctly defined.
-# For 64bits, CROSS_COMPILE64 must be set
-# When defining CROSS_COMPILE and CROSS_COMPILE64, we assure that
-# any 32 or 64 bits builds will pass
-EXTRA_OEMAKE += " \
-    PLATFORM=imx-${PLATFORM_FLAVOR} \
-    CROSS_COMPILE=${HOST_PREFIX} \
-    CROSS_COMPILE64=${HOST_PREFIX} \
-    CFLAGS32=--sysroot=${STAGING_DIR_HOST} \
-    CFLAGS64=--sysroot=${STAGING_DIR_HOST} \
-    CFG_TEE_TA_LOG_LEVEL=0 \
-    CFG_TEE_CORE_LOG_LEVEL=0 \
+DEPENDS:append:toolchain-clang = " compiler-rt lld-native"
+
+SRC_URI = "git://github.com/OP-TEE/optee_os.git;branch=master;protocol=https"
+
+B = "${WORKDIR}/build"
+
+EXTRA_OEMAKE += "\
+    PLATFORM=${OPTEEMACHINE} \
+    CFG_${OPTEE_CORE}_core=y \
+    CROSS_COMPILE_core=${HOST_PREFIX} \
+    CROSS_COMPILE_ta_${OPTEE_ARCH}=${HOST_PREFIX} \
+    AFLAGS="${CFLAGS}" \
+    ta-targets=ta_${OPTEE_ARCH} \
+    O=${B} \
 "
+EXTRA_OEMAKE += "HOST_PREFIX=${HOST_PREFIX}"
+EXTRA_OEMAKE += "CROSS_COMPILE64=${HOST_PREFIX}"
 
-EXTRA_OEMAKE:append:imx8mq-lpddr4-wevk = " \
-    CFG_CORE_LARGE_PHYS_ADDR=y \
-    CFG_CORE_ARM64_PA_BITS=36 \
-    CFG_DDR_SIZE=0x100000000 \
-    CFG_TZDRAM_START=0xfe000000 \
-"
+# Enable BTI in optee
+EXTRA_OEMAKE += "${@bb.utils.contains('MACHINE_FEATURES', 'arm-branch-protection', 'CFG_TA_BTI=1 CFG_CORE_PAUTH=y CFG_TA_PAUTH=y', '', d)}"
 
 LDFLAGS[unexport] = "1"
 CPPFLAGS[unexport] = "1"
 AS[unexport] = "1"
 LD[unexport] = "1"
 
-do_configure[noexec] = "1"
-
-do_compile:prepend() {
-    PLAT_LIBGCC_PATH=$(${CC} -print-libgcc-file-name)
-}
-
-do_compile:arm () {
-    oe_runmake all uTee
-}
-
-do_compile:aarch64 () {
-    oe_runmake all
+do_compile() {
+    oe_runmake -C ${S} all
 }
 do_compile[cleandirs] = "${B}"
 
-do_deploy () {
-    install -d ${DEPLOYDIR}
-    cp ${B}/core/tee-raw.bin ${DEPLOYDIR}/tee.${PLATFORM_FLAVOR}.bin
-    ln -sf tee.${PLATFORM_FLAVOR}.bin ${DEPLOYDIR}/tee.bin
-}
-
-do_deploy:append:arm () {
-    cp ${B}/core/uTee ${DEPLOYDIR}/uTee-${OPTEE_BIN_EXT}
-}
-
-do_install () {
+do_install() {
+    #install core in firmware
     install -d ${D}${nonarch_base_libdir}/firmware/
-    install -m 644 ${B}/core/*.bin ${D}${nonarch_base_libdir}/firmware/
+    install -m 644 ${B}/core/*.bin ${B}/core/tee.elf ${D}${nonarch_base_libdir}/firmware/
 
-    # Install embedded TAs
+    #install tas in optee_armtz
     install -d ${D}${nonarch_base_libdir}/optee_armtz/
-    install -m 444 ${B}/ta/*/*.ta ${D}${nonarch_base_libdir}/optee_armtz/
-
-    # Install the TA devkit
-    install -d ${D}${includedir}/optee/export-user_ta_${OPTEE_ARCH}/
-    cp -aR ${B}/export-ta_${OPTEE_ARCH}/* \
-        ${D}${includedir}/optee/export-user_ta_${OPTEE_ARCH}/
+    install -m 444 ${B}/ta/*/*.ta ${D}${nonarch_base_libdir}/optee_armtz
 }
-
-addtask deploy after do_compile before do_install
-
-FILES:${PN} = "${nonarch_base_libdir}/firmware/ ${nonarch_base_libdir}/optee_armtz/"
-FILES:${PN}-staticdev = "${includedir}/optee/"
-RDEPENDS:${PN}-dev += "${PN}-staticdev"
-
-# FIXME: Build paths are currently embedded
-INSANE_SKIP:${PN}-staticdev += "buildpaths"
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"
+
+do_deploy() {
+    install -d ${DEPLOYDIR}/${MLPREFIX}optee
+    install -m 644 ${D}${nonarch_base_libdir}/firmware/* ${DEPLOYDIR}/${MLPREFIX}optee
+
+    install -d ${DEPLOYDIR}/${MLPREFIX}optee/ta
+    install -m 644 ${B}/ta/*/*.elf ${DEPLOYDIR}/${MLPREFIX}optee/ta
+}
+
+addtask deploy before do_build after do_install
+
+SYSROOT_DIRS += "${nonarch_base_libdir}/firmware"
+
+PACKAGES += "${PN}-ta"
+# OP-TEE installs only its firmware image tree; the main package holds it explicitly.
+# nooelint: oelint.var.filesoverride
+FILES:${PN} = "${nonarch_base_libdir}/firmware/"
+FILES:${PN}-ta += "${nonarch_base_libdir}/optee_armtz/*"
+
+# The OP-TEE OS image contains text relocations by design (not triggered on all
+# archs) and the -dev package ships the TA devkit static libraries, so the textrel
+# and staticdev QA checks do not apply.
+# nooelint: oelint.vars.insaneskip
+INSANE_SKIP:${PN} = "textrel"
+# nooelint: oelint.vars.insaneskip
+INSANE_SKIP:${PN}-dev = "staticdev"
+INHIBIT_PACKAGE_STRIP = "1"
