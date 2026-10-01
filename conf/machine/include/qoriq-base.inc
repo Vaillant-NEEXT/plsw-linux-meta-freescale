@@ -6,7 +6,6 @@ PREFERRED_PROVIDER_u-boot-tools-native ??= "u-boot-tools-native"
 PREFERRED_PROVIDER_u-boot-mkimage-native ??= "u-boot-tools-native"
 PREFERRED_PROVIDER_u-boot-mkimage ??= "u-boot-tools"
 PREFERRED_PROVIDER_nativesdk-u-boot-mkimage ??= "nativesdk-u-boot-tools"
-PREFERRED_VERSION_testfloat = "2a"
 
 SOC_DEFAULT_IMAGE_FSTYPES = "tar.gz"
 SOC_DEFAULT_IMAGE_FSTYPES:append:ls1043a = " wic.bz2"
@@ -43,6 +42,8 @@ EXTRA_IMAGEDEPENDS += "u-boot qoriq-cst-native"
 
 MACHINEOVERRIDES =. "qoriq:"
 
+INHERIT += "machine-overrides-extender"
+
 # Machines or distros can define which BSP it should use by default. We are
 # intending to default for nxp BSP by default and specific machines or
 # DISTROs might change it if need.
@@ -51,6 +52,8 @@ MACHINEOVERRIDES =. "qoriq:"
 QORIQ_DEFAULT_BSP ?= "nxp"
 
 MACHINEOVERRIDES =. "use-${QORIQ_DEFAULT_BSP}-bsp:"
+MACHINEOVERRIDES_EXTENDER:use-mainline-bsp = "qoriq-generic-bsp:qoriq-mainline-bsp"
+MACHINEOVERRIDES_EXTENDER:use-nxp-bsp = "qoriq-generic-bsp:qoriq-nxp-bsp"
 
 # Sub-architecture support
 MACHINE_SOCARCH_SUFFIX ?= ""

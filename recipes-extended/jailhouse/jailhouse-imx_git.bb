@@ -1,39 +1,39 @@
 SUMMARY = "Jailhouse, i.MX fork"
+DESCRIPTION = "Jailhouse partitioning hypervisor (NXP i.MX fork), providing the kernel module and user-space management tools."
 HOMEPAGE = "https://github.com/siemens/jailhouse"
 SECTION = "jailhouse"
 LICENSE = "GPL-2.0-only"
 
 LIC_FILES_CHKSUM = "file://COPYING;md5=9fa7f895f96bde2d47fd5b7d95b6ba4d \
-                 file://tools/root-cell-config.c.tmpl;beginline=6;endline=33;md5=2825581c1666c44a17955dc574cfbfb3 \
-                 file://include/jailhouse/hypercall.h;beginline=9;endline=36;md5=2825581c1666c44a17955dc574cfbfb3 \
-                 file://include/jailhouse/cell-config.h;beginline=9;endline=36;md5=2825581c1666c44a17955dc574cfbfb3 \
-                 file://include/arch/arm/asm/jailhouse_hypercall.h;beginline=9;endline=36;md5=2825581c1666c44a17955dc574cfbfb3 \
-                 file://include/arch/arm64/asm/jailhouse_hypercall.h;beginline=9;endline=36;md5=2825581c1666c44a17955dc574cfbfb3 \
-                 file://include/arch/x86/asm/jailhouse_hypercall.h;beginline=9;endline=36;md5=2825581c1666c44a17955dc574cfbfb3 \
-                 file://driver/jailhouse.h;beginline=9;endline=36;md5=2825581c1666c44a17955dc574cfbfb3 \
+                    file://tools/root-cell-config.c.tmpl;beginline=6;endline=33;md5=2825581c1666c44a17955dc574cfbfb3 \
+                    file://include/jailhouse/hypercall.h;beginline=9;endline=36;md5=2825581c1666c44a17955dc574cfbfb3 \
+                    file://include/jailhouse/cell-config.h;beginline=9;endline=36;md5=2825581c1666c44a17955dc574cfbfb3 \
+                    file://include/arch/arm/asm/jailhouse_hypercall.h;beginline=9;endline=36;md5=2825581c1666c44a17955dc574cfbfb3 \
+                    file://include/arch/arm64/asm/jailhouse_hypercall.h;beginline=9;endline=36;md5=2825581c1666c44a17955dc574cfbfb3 \
+                    file://include/arch/x86/asm/jailhouse_hypercall.h;beginline=9;endline=36;md5=2825581c1666c44a17955dc574cfbfb3 \
+                    file://driver/jailhouse.h;beginline=9;endline=36;md5=2825581c1666c44a17955dc574cfbfb3 \
+"
+
+DEPENDS = "\
+    dtc-native \
+    make-native \
+    python3-mako \
+    python3-mako-native \
 "
 
 PROVIDES = "jailhouse"
-RPROVIDES:${PN} += "jailhouse"
 
-SRCBRANCH = "lf-6.6.36_2.1.0"
-SRCREV = "327e56941e3e96ef9a291d2decb7add21078d8de"
+PV = "2023.03+git${SRCPV}"
 
+SRCBRANCH = "lf-6.18.20_2.0.0"
 IMX_JAILHOUSE_SRC ?= "git://github.com/nxp-imx/imx-jailhouse.git;protocol=https"
 SRC_URI = "${IMX_JAILHOUSE_SRC};branch=${SRCBRANCH} \
            file://arm-arm64-Makefile-Remove-march-option-from-Makefile.patch \
-          "
-
-DEPENDS = " \
-    make-native \
-    python3-mako-native \
-    python3-mako \
-    dtc-native \
-"
+           "
+SRCREV = "8d6d397f7f88f4bd0d9f99933a13163266d09099"
 
 inherit module bash-completion deploy setuptools3
 
-S = "${WORKDIR}/git"
 B = "${S}"
 
 JH_ARCH = "arm64"
@@ -62,6 +62,9 @@ do_configure:prepend() {
    fi
 }
 
+# setuptools3 is inherited after module, so its do_compile shadows
+# module_do_compile; this shell prepend builds the kernel module and tools.
+# nooelint: oelint.task.pythonprefix
 do_compile:prepend() {
     # explicity call make to build the kernel module and tools
     oe_runmake
@@ -86,27 +89,44 @@ do_install:append() {
     install ${B}/inmates/tools/${JH_ARCH}/linux-loader.bin ${D}${INMATES_DIR}/tools/${JH_ARCH}
 }
 
-PACKAGE_BEFORE_PN = "pyjailhouse"
+PACKAGE_BEFORE_PN += "pyjailhouse"
 
+# module.bbclass clears FILES:${PN}, so the bitbake.conf defaults (${sbindir}/*,
+# ${libexecdir}/*) do not apply here and the tool paths must be listed explicitly.
+# nooelint: oelint.vars.filessetting.double
 FILES:${PN} += "${nonarch_base_libdir}/firmware ${libexecdir} ${sbindir} ${JH_DATADIR}"
 # Remove libdir/* appended by setuptools3-base.bbclass for module split to work correctly
 FILES:${PN}:remove = "${libdir}/*"
-FILES:pyjailhouse = "${PYTHON_SITEPACKAGES_DIR}"
+FILES:pyjailhouse += "${PYTHON_SITEPACKAGES_DIR}"
 
-RDEPENDS:${PN} += " \
+RDEPENDS:${PN} += "\
     pyjailhouse \
     python3-curses \
     python3-datetime \
     python3-mmap \
 "
 
-RDEPENDS:pyjailhouse = " \
+RDEPENDS:pyjailhouse = "\
     python3-core \
     python3-ctypes \
     python3-fcntl \
     python3-shell \
 "
 
-INSANE_SKIP:${PN} = "ldflags"
+RPROVIDES:${PN} += "jailhouse"
+
+# The hypervisor firmware and inmate binaries are linked bare-metal (the recipe
+# passes LDFLAGS="") and the vendor Makefile bakes build paths into them, so the
+# ldflags and buildpaths QA checks cannot pass for these packages.
+# nooelint: oelint.vars.insaneskip
+INSANE_SKIP:${PN} = "ldflags buildpaths"
+# nooelint: oelint.vars.insaneskip
+INSANE_SKIP:${PN}-dbg = "buildpaths"
+
+# Scope this to the recipe's own module: "^kernel-module-.*" would make
+# jailhouse-imx a provider for every kernel-module-* virtual, ahead of linux-imx.
+PACKAGES_DYNAMIC += "^kernel-module-jailhouse.*"
+# nooelint: oelint.vars.insaneskip
+INSANE_SKIP:kernel-module-jailhouse-${KERNEL_VERSION} = "buildpaths"
 
 COMPATIBLE_MACHINE = "(mx8m-nxp-bsp|mx8ulp-nxp-bsp|mx9-nxp-bsp)"

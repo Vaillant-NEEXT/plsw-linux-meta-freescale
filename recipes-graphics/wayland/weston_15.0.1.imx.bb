@@ -1,0 +1,190 @@
+# This recipe is modified for i.MX. For ease of maintenance the recipe itself
+# is a verbatim copy of a OE-core recipe, so it can be diffed against
+# upstream directly; the i.MX customization lives in the required
+# weston_15.0.1.imx.inc.
+########### OE-core copy ##################
+# Upstream hash: 8c008f36d7af1e63cb3f4a2ba763efd1f1e5fe4d
+
+# Overridden in the required weston_15.0.1.imx.inc; kept here to preserve the
+# verbatim OE-core copy (see header). UPSTREAM-PARITY.
+# nooelint: oelint.var.override
+SUMMARY = "Weston, a Wayland compositor"
+DESCRIPTION = "Weston is the reference implementation of a Wayland compositor"
+HOMEPAGE = "http://wayland.freedesktop.org"
+LICENSE = "MIT"
+LIC_FILES_CHKSUM = "file://COPYING;md5=d79ee9e66bb0f95d3386a7acae780b70 \
+                    file://libweston/compositor.c;endline=27;md5=eb6d5297798cabe2ddc65e2af519bcf0 \
+                    "
+
+SRC_URI = "https://gitlab.freedesktop.org/wayland/weston/-/releases/${PV}/downloads/${BPN}-${PV}.tar.xz \
+           file://weston.png \
+           file://weston.desktop \
+           file://xwayland.weston-start \
+           file://systemd-notify.weston-start \
+           file://Allow-libdisplay-info-0.4.0.patch \
+           "
+
+# The required .inc removes this tarball from SRC_URI and fetches the NXP git
+# fork instead, so this checksum and SRCREV never apply to the same item.
+# UPSTREAM-PARITY.
+# nooelint: oelint.vars.srcurimutualex
+SRC_URI[sha256sum] = "58c6186d29a5d2f0be0dec4882af71cc190a11da803f6ed1bf0b2c74120da973"
+
+UPSTREAM_CHECK_URI = "https://gitlab.freedesktop.org/wayland/weston/-/tags"
+UPSTREAM_CHECK_REGEX = "releases/(?P<pver>\d+\.\d+\.(?!9\d+)\d+)"
+
+inherit meson pkgconfig useradd
+
+# depends on virtual/egl
+#
+require ${THISDIR}/required-distro-features.inc
+
+# Ordering and placement both come from the upstream recipe at the header's
+# Upstream hash. The '=' discards nothing: meson, pkgconfig and useradd add to
+# DEPENDS only through :append/:prepend, which BitBake applies after plain
+# assignments. UPSTREAM-PARITY.
+# nooelint: oelint.var.order.DEPENDS,oelint.vars.dependsappend
+DEPENDS = "cairo gdk-pixbuf glib-2.0 libdisplay-info libinput libxkbcommon \
+           pango pixman virtual/egl wayland wayland-native wayland-protocols"
+
+LDFLAGS += "${@bb.utils.contains('DISTRO_FEATURES', 'lto', '-Wl,-z,undefs', '', d)}"
+
+WESTON_MAJOR_VERSION = "${@'.'.join(d.getVar('PV').split('.')[0:1])}"
+
+EXTRA_OEMESON += "-Dpipewire=false -Dtests=false"
+
+PACKAGECONFIG ??= "\
+    ${@bb.utils.contains('DISTRO_FEATURES', 'wayland', 'kms wayland egl clients', '', d)} \
+    ${@bb.utils.contains('DISTRO_FEATURES', 'x11 wayland', 'xwayland', '', d)} \
+    ${@bb.utils.filter('DISTRO_FEATURES', 'systemd vulkan x11', d)} \
+    ${@bb.utils.contains_any('DISTRO_FEATURES', 'wayland x11', '', 'headless', d)} \
+    image-jpeg \
+    screenshare \
+    shell-desktop \
+    shell-fullscreen \
+    shell-ivi \
+    shell-kiosk \
+    "
+
+# Can be 'damage', 'im', 'egl', 'shm', 'touch', 'dmabuf-feedback', 'dmabuf-v4l', 'dmabuf-egl' or 'all'
+SIMPLECLIENTS ?= "all"
+
+#
+# Compositor choices
+#
+# Weston on KMS
+PACKAGECONFIG[kms] = "-Dbackend-drm=true,-Dbackend-drm=false,drm udev seatd virtual/egl virtual/libgles2 virtual/libgbm mtdev"
+# Weston on Wayland (nested Weston)
+PACKAGECONFIG[wayland] = "-Dbackend-wayland=true,-Dbackend-wayland=false,virtual/egl virtual/libgles2"
+# Weston on X11
+PACKAGECONFIG[x11] = "-Dbackend-x11=true,-Dbackend-x11=false,virtual/libx11 libxcb libxcursor"
+# Headless Weston
+PACKAGECONFIG[headless] = "-Dbackend-headless=true,-Dbackend-headless=false"
+# Weston on RDP
+PACKAGECONFIG[rdp] = "-Dbackend-rdp=true,-Dbackend-rdp=false,freerdp,freerdp"
+# VA-API desktop recorder
+PACKAGECONFIG[vaapi] = "-Ddeprecated-backend-drm-screencast-vaapi=true,-Ddeprecated-backend-drm-screencast-vaapi=false,libva"
+# Weston with EGL support
+PACKAGECONFIG[egl] = "-Drenderer-gl=true,-Drenderer-gl=false,virtual/egl"
+# Weston with Vulkan support
+PACKAGECONFIG[vulkan] = "-Drenderer-vulkan=true,-Drenderer-vulkan=false,glslang-native vulkan-loader vulkan-headers"
+# Weston with lcms support
+PACKAGECONFIG[lcms] = "-Dcolor-management-lcms=true,-Dcolor-management-lcms=false,lcms"
+# Weston with webp support
+PACKAGECONFIG[webp] = "-Dimage-webp=true,-Dimage-webp=false,libwebp"
+# Weston with systemd support
+PACKAGECONFIG[systemd] = "-Dsystemd=true,-Dsystemd=false,systemd dbus"
+# Weston with Xwayland support (requires X11 and Wayland)
+PACKAGECONFIG[xwayland] = "-Dxwayland=true,-Dxwayland=false,libxcb libxcursor xwayland"
+# Clients support
+PACKAGECONFIG[clients] = "-Dsimple-clients=${SIMPLECLIENTS} -Ddemo-clients=true,-Dsimple-clients= -Ddemo-clients=false"
+# Virtual remote output with GStreamer on DRM backend
+PACKAGECONFIG[remoting] = "-Dremoting=true,-Dremoting=false,gstreamer1.0 gstreamer1.0-plugins-base"
+# Weston with screen-share support
+PACKAGECONFIG[screenshare] = "-Ddeprecated-screenshare=true,-Ddeprecated-screenshare=false"
+# Traditional desktop shell
+PACKAGECONFIG[shell-desktop] = "-Dshell-desktop=true,-Dshell-desktop=false"
+# Fullscreen shell
+PACKAGECONFIG[shell-fullscreen] = "-Ddeprecated-shell-fullscreen=true,-Ddeprecated-shell-fullscreen=false"
+# In-Vehicle Infotainment (IVI) shell
+PACKAGECONFIG[shell-ivi] = "-Dshell-ivi=true,-Dshell-ivi=false"
+# Kiosk shell
+PACKAGECONFIG[shell-kiosk] = "-Dshell-kiosk=true,-Dshell-kiosk=false"
+# Lua shell
+PACKAGECONFIG[shell-lua] = "-Dshell-lua=true,-Dshell-lua=false,lua"
+# JPEG image loading support
+PACKAGECONFIG[image-jpeg] = "-Dimage-jpeg=true,-Dimage-jpeg=false, jpeg"
+# screencasting via PipeWire
+PACKAGECONFIG[pipewire] = "-Dbackend-pipewire=true,-Dbackend-pipewire=false,pipewire,pipewire"
+# VNC remote screensharing
+PACKAGECONFIG[vnc] = "-Dbackend-vnc=true,-Dbackend-vnc=false,neatvnc libpam"
+# Perfetto performance analysis support
+PACKAGECONFIG[perfetto] = "-Dperfetto=true,-Dperfetto=false,libperfetto"
+
+do_install:append() {
+    # Weston doesn't need the .la files to load modules, so wipe them
+    rm -f ${D}/${libdir}/libweston-${WESTON_MAJOR_VERSION}/*.la
+
+    # If X11, ship a desktop file to launch it
+    if [ "${@bb.utils.filter('DISTRO_FEATURES', 'x11', d)}" ]; then
+        install -d ${D}${datadir}/applications
+        install ${UNPACKDIR}/weston.desktop ${D}${datadir}/applications
+
+        install -d ${D}${datadir}/icons/hicolor/48x48/apps
+        install ${UNPACKDIR}/weston.png ${D}${datadir}/icons/hicolor/48x48/apps
+    fi
+
+    if [ "${@bb.utils.contains('PACKAGECONFIG', 'xwayland', 'yes', 'no', d)}" = "yes" ]; then
+        install -Dm 644 ${UNPACKDIR}/xwayland.weston-start ${D}${datadir}/weston-start/xwayland
+    fi
+
+    if [ "${@bb.utils.contains('PACKAGECONFIG', 'systemd', 'yes', 'no', d)}" = "yes" ]; then
+        install -Dm 644 ${UNPACKDIR}/systemd-notify.weston-start ${D}${datadir}/weston-start/systemd-notify
+    fi
+
+    if [ "${@bb.utils.contains('PACKAGECONFIG', 'launch', 'yes', 'no', d)}" = "yes" ]; then
+        chmod u+s ${D}${bindir}/weston-launch
+    fi
+}
+
+PACKAGES += "${@bb.utils.contains('PACKAGECONFIG', 'xwayland', '${PN}-xwayland', '', d)}"
+PACKAGES += "libweston-${WESTON_MAJOR_VERSION} ${PN}-examples"
+
+# ${PN}-xwayland is only added to PACKAGES under the xwayland PACKAGECONFIG
+# (above); declare it so its FILES/RDEPENDS are recognised when it is not.
+PACKAGES_DYNAMIC += "^${PN}-xwayland$"
+
+FILES:${PN}-dev += "${libdir}/${BPN}/libexec_weston.so"
+# Main package is curated to weston's own binaries, config and plugins; the
+# shared libraries are split out into the libweston-${WESTON_MAJOR_VERSION} package.
+# nooelint: oelint.var.filesoverride
+FILES:${PN} = "${sysconfdir} ${bindir}/weston ${bindir}/weston-terminal ${bindir}/weston-info ${bindir}/weston-launch ${bindir}/wcap-decode ${libexecdir} ${libdir}/${BPN}/*.so* ${datadir}"
+
+# libweston-*, -examples and -xwayland are split packages with no default FILES,
+# so '=' is a complete definition. Kept byte-identical to oe-core weston to avoid
+# fork drift; suppress the append-preference warning.
+# nooelint: oelint.var.filesoverride
+FILES:libweston-${WESTON_MAJOR_VERSION} = "${libdir}/lib*${SOLIBS} ${libdir}/libweston-${WESTON_MAJOR_VERSION}/*.so"
+# Ordering comes from the upstream recipe at the header's Upstream hash.
+# nooelint: oelint.var.order.SUMMARY
+SUMMARY:libweston-${WESTON_MAJOR_VERSION} = "Helper library for implementing 'wayland window managers'."
+
+# nooelint: oelint.var.filesoverride
+FILES:${PN}-examples = "${bindir}/*"
+
+# nooelint: oelint.var.filesoverride
+FILES:${PN}-xwayland = "${libdir}/libweston-${WESTON_MAJOR_VERSION}/xwayland.so"
+RDEPENDS:${PN}-xwayland += "xwayland"
+
+RDEPENDS:${PN} += "xkeyboard-config"
+RRECOMMENDS:${PN} = "weston-init liberation-fonts"
+# Ordering comes from the upstream recipe at the header's Upstream hash.
+# nooelint: oelint.var.order.RDEPENDS
+RDEPENDS:${PN}-dev += "wayland-protocols-dev"
+
+USERADD_PACKAGES = "${PN}"
+GROUPADD_PARAM:${PN} = "--system weston-launch"
+
+########### End of OE-core copy ###########
+
+require weston_15.0.1.imx.inc

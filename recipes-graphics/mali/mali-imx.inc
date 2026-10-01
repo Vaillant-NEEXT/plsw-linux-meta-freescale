@@ -1,11 +1,13 @@
 SUMMARY = "Graphics libraries and driver for i.MX Mali GPU"
+DESCRIPTION = "Arm Mali GPU user-space graphics libraries and driver for i.MX SoCs."
+HOMEPAGE = "https://www.nxp.com/"
 SECTION = "libs"
-DEPENDS = " \
+DEPENDS += "\
     libdrm \
     vulkan-loader \
     wayland \
     wayland-protocols"
-PROVIDES = " \
+PROVIDES = "\
     virtual/egl \
     virtual/libgbm \
     virtual/libgles1 \
@@ -18,7 +20,7 @@ INHIBIT_PACKAGE_DEBUG_SPLIT = "1"
 INHIBIT_PACKAGE_STRIP = "1"
 INHIBIT_SYSROOT_STRIP = "1"
 
-PACKAGES =+ " \
+PACKAGES =+ "\
     ${PN}-libegl     ${PN}-libegl-dev \
     ${PN}-libgbm     ${PN}-libgbm-dev \
     ${PN}-libgles1   ${PN}-libgles1-dev \
@@ -27,81 +29,101 @@ PACKAGES =+ " \
     ${PN}-libvulkan  \
     ${PN}-opencl-icd ${PN}-opencl-icd-dev"
 
-# Since libmali.so is loaded by dlopen, include it in the main package
-FILES:${PN} += " \
-    ${libdir}/libmali.so \
-    ${nonarch_base_libdir}/firmware"
-FILES_SOLIBSDEV = ""
-INSANE_SKIP:${PN} = "dev-so"
-FILES:${PN}-libegl = " \
-    ${libdir}/libEGL${SOLIBS}"
-FILES:${PN}-libgbm = " \
-    ${libdir}/libgbm${SOLIBS}"
-FILES:${PN}-libgles1 = " \
-    ${libdir}/libGLESv1_CM${SOLIBS}"
-FILES:${PN}-libgles2 = " \
-    ${libdir}/libGLESv2${SOLIBS}"
-FILES:${PN}-opencl-icd = " \
-    ${sysconfdir}/OpenCL"
-FILES:${PN}-libvulkan = " \
-    ${sysconfdir}/vulkan"
+# Consolidate GLES dev packages
+PACKAGES =+ "${PN}-libgles-dev"
 
-FILES:${PN}-dev = " \
+# Since libmali.so is loaded by dlopen, include it in the main package
+FILES:${PN} += "\
+    ${libdir}/libmali.so \
+    ${nonarch_base_libdir}/firmware \
+    ${nonarch_libdir}/modules-load.d/*.conf"
+FILES:${PN}-libegl += "\
+    ${libdir}/libEGL${SOLIBS}"
+FILES:${PN}-libgbm += "\
+    ${libdir}/libgbm${SOLIBS}"
+FILES:${PN}-libgles1 += "\
+    ${libdir}/libGLESv1_CM${SOLIBS}"
+FILES:${PN}-libgles2 += "\
+    ${libdir}/libGLESv2${SOLIBS}"
+FILES:${PN}-opencl-icd += "\
+    ${sysconfdir}/OpenCL"
+FILES:${PN}-libvulkan += "\
+    ${datadir}/vulkan"
+# ${PN}-dev is deliberately curated to just malisc; the headers and dev
+# symlinks ship in the per-library -dev packages below, so the standard -dev
+# default is intentionally replaced rather than extended.
+# nooelint: oelint.var.filesoverride
+FILES:${PN}-dev = "\
     ${bindir}/malisc"
-FILES:${PN}-libegl-dev = " \
+FILES:${PN}-libegl-dev += "\
     ${includedir}/EGL \
     ${includedir}/KHR \
     ${libdir}/libEGL${SOLIBSDEV} \
     ${libdir}/pkgconfig/egl.pc"
-FILES:${PN}-libgbm-dev = " \
+FILES:${PN}-libgbm-dev += "\
     ${includedir}/gbm.h \
     ${libdir}/libgbm${SOLIBSDEV} \
     ${libdir}/pkgconfig/gbm.pc"
-
-# Consolidate GLES dev packages
-PACKAGES =+ "${PN}-libgles-dev"
-FILES:${PN}-libgles-dev = " \
+FILES:${PN}-libgles-dev += "\
     ${includedir}/GLES* \
     ${libdir}/libGLES*${SOLIBSDEV} \
     ${libdir}/pkgconfig/gles*.pc"
-DEBIAN_NOAUTONAME:${PN}-libgles-dev = "1"
-RREPLACES:${PN}-libgles-dev = "libgles-dev"
-RPROVIDES:${PN}-libgles-dev = "libgles-dev"
-RCONFLICTS:${PN}-libgles-dev = "libgles-dev"
-ALLOW_EMPTY:${PN}-libgles1-dev = "1"
-ALLOW_EMPTY:${PN}-libgles2-dev = "1"
-ALLOW_EMPTY:${PN}-libgles3-dev = "1"
+FILES:${PN}-opencl-icd-dev += "\
+    ${bindir}/mali_clcc"
+
+RDEPENDS:${PN}-libvulkan = "vulkan-wsi-layer"
 RDEPENDS:${PN}-libgles1-dev = "${PN}-libgles-dev"
 RDEPENDS:${PN}-libgles2-dev = "${PN}-libgles-dev"
 RDEPENDS:${PN}-libgles3-dev = "${PN}-libgles-dev"
 
-FILES:${PN}-opencl-icd-dev = " \
-    ${bindir}/mali_clcc"
+# libmali.so is loaded with dlopen, so an explicit runtime dependency is necessary
+RDEPENDS:${PN}-libegl += "${PN}"
+RDEPENDS:${PN}-libgbm += "${PN}"
+RDEPENDS:${PN}-libgles1 += "${PN}"
+RDEPENDS:${PN}-libgles2 += "${PN}"
+RDEPENDS:${PN}-libgles3 += "${PN}"
 
-python __anonymous() {
+RPROVIDES:${PN}-opencl-icd = "virtual-opencl-icd"
+RPROVIDES:${PN}-libvulkan = "virtual-vulkan-icd"
+RPROVIDES:${PN}-libgles-dev = "libgles-dev"
 
-    # Avoid Debian-renaming
-    for p in (("libegl",    "libegl1"      ),
-              ("libgbm",    "libgbm1"      ),
-              ("libgles1",  "libglesv1-cm1"),
-              ("libgles2",  "libglesv2-2"  ),
-              ("libgles3",                 )):
-        fullp = "${PN}-" + p[0]
-        pkgs = "".join(' %s' % i for i in p)
-        d.setVar("DEBIAN_NOAUTONAME:" + fullp, "1")
-        d.appendVar("RREPLACES:"  + fullp, pkgs)
-        d.appendVar("RPROVIDES:"  + fullp, pkgs)
-        d.appendVar("RCONFLICTS:" + fullp, pkgs)
-        # libmali.so is loaded with dlopen, so an explicit runtime dependency is necessary
-        d.appendVar("RDEPENDS:"   + fullp, "${PN}")
+# The generic names stay provided: consumers that dlopen a GL backend depend on
+# them by name rather than through shlibs, as cogl-1.0 does for libgles2.
+RPROVIDES:${PN}-libegl += "libegl"
+RPROVIDES:${PN}-libegl-dev += "libegl-dev"
+RPROVIDES:${PN}-libgbm += "libgbm"
+RPROVIDES:${PN}-libgbm-dev += "libgbm-dev"
+RPROVIDES:${PN}-libgles1 += "libgles1"
+RPROVIDES:${PN}-libgles1-dev += "libgles1-dev"
+RPROVIDES:${PN}-libgles2 += "libgles2"
+RPROVIDES:${PN}-libgles2-dev += "libgles2-dev"
+RPROVIDES:${PN}-libgles3 += "libgles3"
+RPROVIDES:${PN}-libgles3-dev += "libgles3-dev"
 
-        # For -dev, the first element is both the Debian and original name
-        fullp += "-dev"
-        pkgs = p[0] + "-dev"
-        d.setVar("DEBIAN_NOAUTONAME:" + fullp, "1")
-        d.appendVar("RREPLACES:"  + fullp, pkgs)
-        d.appendVar("RPROVIDES:"  + fullp, pkgs)
-        d.appendVar("RCONFLICTS:" + fullp, pkgs)
-}
+RCONFLICTS:${PN}-libgles-dev = "libgles-dev"
+
+FILES_SOLIBSDEV = ""
+# libmali.so is shipped in the main package for dlopen consumers (above), so the
+# dev-so QA check does not apply.
+# nooelint: oelint.vars.insaneskip
+INSANE_SKIP:${PN} = "dev-so"
+DEBIAN_NOAUTONAME:${PN}-libgles-dev = "1"
+RREPLACES:${PN}-libgles-dev = "libgles-dev"
+ALLOW_EMPTY:${PN}-libgles1-dev = "1"
+ALLOW_EMPTY:${PN}-libgles2-dev = "1"
+ALLOW_EMPTY:${PN}-libgles3-dev = "1"
+
+# The GPU interface packages keep their ${PN}- prefix: Debian renaming would
+# drop it and collide with the generic mesa package names.
+DEBIAN_NOAUTONAME:${PN}-libegl = "1"
+DEBIAN_NOAUTONAME:${PN}-libegl-dev = "1"
+DEBIAN_NOAUTONAME:${PN}-libgbm = "1"
+DEBIAN_NOAUTONAME:${PN}-libgbm-dev = "1"
+DEBIAN_NOAUTONAME:${PN}-libgles1 = "1"
+DEBIAN_NOAUTONAME:${PN}-libgles1-dev = "1"
+DEBIAN_NOAUTONAME:${PN}-libgles2 = "1"
+DEBIAN_NOAUTONAME:${PN}-libgles2-dev = "1"
+DEBIAN_NOAUTONAME:${PN}-libgles3 = "1"
+DEBIAN_NOAUTONAME:${PN}-libgles3-dev = "1"
 
 COMPATIBLE_MACHINE = "(mx95-nxp-bsp)"

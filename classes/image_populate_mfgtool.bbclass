@@ -41,8 +41,8 @@
 #
 # SPDX-License-Identifier: MIT
 
-MFGTOOL_FILESPATH ??= " \
-    ${@base_set_filespath(["%s/mfgtool" % p for p in "${BBPATH}".split(":")] \
+MFGTOOL_FILESPATH ??= "\
+    ${@base_set_filespath(["%s/mfgtool"% p for p in "${BBPATH}".split(":")] \
                              + ["${FILE_DIRNAME}/${BP}/mfgtool", \
                                 "${FILE_DIRNAME}/${BPN}/mfgtool", \
                                 "${FILE_DIRNAME}/files/mfgtool"] \
@@ -59,6 +59,9 @@ do_populate_mfgtool[dirs] += "${DEPLOY_DIR_IMAGE} ${WORKDIR}"
 do_populate_mfgtool[recrdeptask] += "do_deploy"
 do_populate_mfgtool[depends] += "uuu-bin:do_populate_sysroot"
 
+# MFGTOOLCONFIG is parsed like PACKAGECONFIG: BitBake cannot enumerate varflags
+# declaratively, and do_populate_mfgtool[depends] must exist before the task graph.
+# nooelint: oelint.task.noanonpython
 python () {
     depends = []
     deploy_files = ""
@@ -102,6 +105,7 @@ python do_populate_mfgtool() {
     # Generate MFGTOOL bundle.
     bb.build.exec_func('generate_mfgtool_bundle', d)
 }
+do_populate_mfgtool[doc] = "Fetch the scripts listed in MFGTOOLCONFIG and generate the manufacturing tool bundle from them"
 
 generate_mfgtool_bundle() {
     bbnote "Processing uuu files ..."
@@ -137,3 +141,4 @@ generate_mfgtool_bundle() {
     ln -fs mfgtool-bundle-${PN}-${MACHINE}.tar.gz \
           ${DEPLOY_DIR_IMAGE}/mfgtool-bundle-${PN}.tar.gz
 }
+generate_mfgtool_bundle[doc] = "Expand the .uuu.in templates for the machine and deploy the resulting uuu scripts, uuu binaries and extra files"

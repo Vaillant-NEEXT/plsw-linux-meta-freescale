@@ -1,28 +1,21 @@
-SUMMARY = "i.MX M4 core Demo images"
-SECTION = "app"
-LICENSE = "Proprietary"
+# Copyright 2017-2021 NXP
+# Released under the MIT license (see COPYING.MIT for the terms)
+
+require imx-mcore-demos.inc
+
 LIC_FILES_CHKSUM:mx7d-nxp-bsp = "file://COPYING;md5=8cf95184c220e247b9917e7244124c5a"
 
-inherit deploy fsl-eula-unpack
+# This legacy mx7d release ships as "${SOC}-m4-freertos-${PV}.bin", not the
+# "${SOC}-${MCORE_TYPE}-demo-${PV}.bin" that imx-mcore-demos.inc builds, so
+# SRC_URI and S are fully replaced here. This is a genuine per-release value,
+# not an addition (+= does not apply), and it cannot be a weak default: both
+# SRC_URI and S are set with a hard "=" in bitbake.conf, so "?=" in the include
+# would leave that config default in place for the other releases. JUSTIFIED.
+# nooelint: oelint.var.override
+SRC_URI = "${FSL_MIRROR}/${SOC}-m4-freertos-${PV}.bin;fsl-eula=true"
+# nooelint: oelint.var.override
+S = "${UNPACKDIR}/${SOC}-m4-freertos-${PV}"
 
-M4_SOC ?= "INVALID"
-M4_SOC:mx7d-nxp-bsp = "imx7d-sabresd"
-
-SRC_URI = "${FSL_MIRROR}/${M4_SOC}-m4-freertos-${PV}.bin;fsl-eula=true"
-S = "${WORKDIR}/${M4_SOC}-m4-freertos-${PV}"
-
-SRC_URI[md5sum] = "b05b780ff3916f4953ab58ac95233c38"
 SRC_URI[sha256sum] = "cc00d3b936d49b2794a2a99e10129437e70caba3fd26b8379b8c50dd22f73254"
 
-do_deploy () {
-   # Install the demo binaries
-   install -d ${DEPLOYDIR}
-   cp ${S}/*.bin ${DEPLOYDIR}/
-   ls ${DEPLOYDIR}/
-}
-
-addtask deploy before do_build after do_compile
-
-PACKAGE_ARCH = "${MACHINE_SOCARCH}"
 COMPATIBLE_MACHINE = "(mx7d-nxp-bsp)"
-

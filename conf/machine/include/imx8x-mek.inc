@@ -3,8 +3,8 @@ require conf/machine/include/arm/armv8a/tune-cortexa35.inc
 
 IMX_DEFAULT_BSP = "nxp"
 
-MACHINE_FEATURES += "pci optee bcm43455 bcm4356 nxp8997-pcie nxp9098-pcie"
-MACHINE_FEATURES:append:use-nxp-bsp = " bcm4359"
+MACHINE_FEATURES += "pci optee bcm43455 bcm4356 nxp9098-pcie"
+MACHINE_FEATURES:append:use-nxp-bsp = " bcm4359 nxpwifi-all-pcie nxpwifi-all-sdio"
 
 # Don't include kernels in standard images
 RRECOMMENDS:${KERNEL_PACKAGE_NAME}-base = ""
@@ -12,7 +12,7 @@ RRECOMMENDS:${KERNEL_PACKAGE_NAME}-base = ""
 LOADADDR = ""
 
 # We have to disable SERIAL_CONSOLE due to auto-serial-console
-SERIAL_CONSOLES = "115200;ttyAMA0"
+SERIAL_CONSOLES = "115200;ttyLP0"
 
 # we do not want to have getty running on tty1 as we run
 # auto-serial-console there
@@ -33,8 +33,6 @@ KERNEL_DEVICETREE:append:use-nxp-bsp = " \
     freescale/${KERNEL_DEVICETREE_BASENAME}-jdi-wuxga-lvds0-panel-rpmsg.dtb \
     freescale/${KERNEL_DEVICETREE_BASENAME}-jdi-wuxga-lvds1-panel.dtb \
     freescale/${KERNEL_DEVICETREE_BASENAME}-jdi-wuxga-lvds1-panel-rpmsg.dtb \
-    freescale/${KERNEL_DEVICETREE_BASENAME}-ov5640.dtb \
-    freescale/${KERNEL_DEVICETREE_BASENAME}-ov5640-rpmsg.dtb \
     freescale/${KERNEL_DEVICETREE_BASENAME}-rpmsg.dtb \
 "
 
@@ -46,7 +44,7 @@ SPL_BINARY = \
                                                        '', d)}"
 
 UBOOT_CONFIG ??= "sd"
-UBOOT_CONFIG[sd]   = "${UBOOT_CONFIG_BASENAME}_defconfig,sdcard"
+UBOOT_CONFIG[sd]   = "${UBOOT_CONFIG_BASENAME}_defconfig"
 UBOOT_CONFIG[fspi] = "${UBOOT_CONFIG_BASENAME}_fspi_defconfig"
 
 IMX_BOOT_SEEK = "32"
@@ -57,8 +55,8 @@ IMX_DEFAULT_BOOTLOADER = "u-boot-imx"
 UBOOT_SUFFIX = "bin"
 
 IMXBOOT_TARGETS_SD = \
-    "${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'flash_spl', \
-                                                       'flash', d)}"
+    "${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'flash_spl flash_linux_m4', \
+                                                       'flash flash_regression_linux_m4', d)}"
 IMXBOOT_TARGETS_FSPI = \
     "${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'flash_spl_flexspi', \
                                                        'flash_flexspi', d)}"

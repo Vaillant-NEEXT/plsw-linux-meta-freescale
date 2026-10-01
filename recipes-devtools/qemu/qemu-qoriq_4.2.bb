@@ -1,13 +1,10 @@
-BBCLASSEXTEND = ""
-
-require qemu.inc
+require qemu-qoriq.inc
 
 COMPATIBLE_MACHINE = "(qoriq)"
 
-DEPENDS = "glib-2.0 zlib pixman bison-native"
+DEPENDS += "bison-native glib-2.0 pixman zlib"
 
-LIC_FILES_CHKSUM = "file://COPYING;md5=441c28d2cf86e15a37fa47e15a72fbac \
-                    file://COPYING.LIB;endline=24;md5=8c5efda6cf1e1b03dcfd0e6c0d271c7f"
+PROVIDES += "qemu"
 
 SRC_URI = "gitsm://github.com/nxp-qoriq/qemu;protocol=https;nobranch=1 \
            file://powerpc_rom.bin \
@@ -15,12 +12,12 @@ SRC_URI = "gitsm://github.com/nxp-qoriq/qemu;protocol=https;nobranch=1 \
            file://0002-Add-subpackage-ptest-which-runs-all-unit-test-cases-.patch \
            "
 
-SRCREV = "14fda5a42df6c72e890d6a97ff88c5852172604b"
+SRCREV = "a46ddbbe661677dcfa342f00ab7ab71e5f6f1a09"
 
-S = "${WORKDIR}/git"
-
+# The rename must follow PACKAGES, not a copy of it: BitBake cannot generate
+# RPROVIDES:<pkg> variable names declaratively.
+# nooelint: oelint.task.noanonpython
 python() {
-    d.appendVar('PROVIDES', ' ' + d.getVar('BPN').replace('-qoriq', ''))
     pkgs = d.getVar('PACKAGES').split()
     for p in pkgs:
         if '-qoriq' in p:
@@ -29,21 +26,22 @@ python() {
             d.appendVar('RREPLACES:' + p, ' ' + p.replace('-qoriq', ''))
 }
 
-RDEPENDS:${PN}:class-target += "bash"
+PACKAGECONFIG ??= "\
+    fdt sdl kvm aio libusb vhost numa \
+    ${@bb.utils.filter('DISTRO_FEATURES', 'alsa xen', d)} \
+"
+
+PACKAGECONFIG[xkbcommon] = ",,"
+PACKAGECONFIG[libudev] = ",,"
 
 EXTRA_OECONF:append:class-target = " --target-list=${@get_qemu_target_list(d)}"
-EXTRA_OECONF:append:class-target:mipsarcho32 = "${@bb.utils.contains('BBEXTENDCURR', 'multilib', ' --disable-capstone', '', d)}"
-EXTRA_OECONF:append:class-nativesdk = " --target-list=${@get_qemu_target_list(d)}"
-
-do_install:append:class-nativesdk() {
-     ${@bb.utils.contains('PACKAGECONFIG', 'gtk+', 'make_qemu_wrapper', '', d)}
-}
+EXTRA_OECONF:append:class-target:mipsarcho32 = " ${@bb.utils.contains('BBEXTENDCURR', 'multilib', '--disable-capstone', '', d)}"
 
 do_install_ptest() {
-        cp -rL ${B}/tests ${D}${PTEST_PATH}
+        cp --no-preserve=ownership -rL ${B}/tests ${D}${PTEST_PATH}
         find ${D}${PTEST_PATH}/tests -type f -name "*.[Sshcod]" | xargs -i rm -rf {}
 
-        cp ${S}/tests/Makefile.include ${D}${PTEST_PATH}/tests
+        install -m 0644 ${S}/tests/Makefile.include ${D}${PTEST_PATH}/tests
         # Don't check the file genreated by configure
         sed -i -e '/wildcard config-host.mak/d' \
                -e '$ {/endif/d}' ${D}${PTEST_PATH}/tests/Makefile.include
@@ -51,14 +49,8 @@ do_install_ptest() {
             ${D}/${PTEST_PATH}/tests/qemu-iotests/common.env
 }
 
-PACKAGECONFIG ??= " \
-    fdt sdl kvm aio libusb vhost numa \
-    ${@bb.utils.filter('DISTRO_FEATURES', 'alsa xen', d)} \
-"
-PACKAGECONFIG:class-nativesdk ??= "fdt sdl kvm"
-
-PACKAGECONFIG[xkbcommon] = ",,"
-PACKAGECONFIG[libudev] = ",,"
-
 DISABLE_STATIC = ""
 
+RDEPENDS:${PN}:append:class-target = " bash"
+
+BBCLASSEXTEND = ""

@@ -5,8 +5,8 @@ require conf/machine/include/arm/armv8a/tune-cortexa35.inc
 
 IMX_DEFAULT_BSP = "nxp"
 
-MACHINE_FEATURES += "pci bcm43455 bcm4356 nxp8997-pcie nxp9098-pcie"
-MACHINE_FEATURES:append:use-nxp-bsp = " bcm4359"
+MACHINE_FEATURES += "pci bcm43455 bcm4356 nxp9098-pcie"
+MACHINE_FEATURES:append:use-nxp-bsp = " bcm4359 dpdk nxpwifi-all-sdio"
 
 # Don't include kernels in standard images
 RRECOMMENDS:${KERNEL_PACKAGE_NAME}-base = ""
@@ -39,14 +39,14 @@ SPL_BINARY = "spl/u-boot-spl.bin"
 UBOOT_SUFFIX = "bin"
 
 UBOOT_CONFIG ??= "sd"
-UBOOT_CONFIG[sd]   = "${UBOOT_CONFIG_BASENAME}_defconfig,sdcard"
+UBOOT_CONFIG[sd]   = "${UBOOT_CONFIG_BASENAME}_defconfig"
 UBOOT_CONFIG[fspi] = "${UBOOT_CONFIG_BASENAME}_fspi_defconfig"
 
 IMX_BOOT_SEEK = "32"
 
 IMXBOOT_TARGETS_SD = \
-    "${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'flash_spl', \
-                                                       'flash', d)}"
+    "${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'flash_spl flash_linux_m4 flash_linux_m4_no_v2x ', \
+                                                       'flash flash_regression_linux_m4', d)}"
 IMXBOOT_TARGETS_FSPI = \
     "${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'flash_spl_flexspi', \
                                                        'flash_flexspi', d)}"

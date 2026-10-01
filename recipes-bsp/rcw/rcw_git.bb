@@ -1,5 +1,7 @@
 SUMMARY = "Reset Configuration Word"
 DESCRIPTION = "Reset Configuration Word - hardware boot-time parameters for the QorIQ targets"
+HOMEPAGE = "https://github.com/nxp-qoriq/rcw"
+SECTION = "bsp"
 LICENSE = "BSD-3-Clause"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=44a0d0fad189770cc022af4ac6262cbe"
 
@@ -8,17 +10,15 @@ DEPENDS += "tcl-native"
 inherit deploy siteinfo
 
 SRC_URI = "git://github.com/nxp-qoriq/rcw;protocol=https;nobranch=1"
-SRCREV = "64abe70cf0abab053c37db460c12e367e6adf7a4"
-
-S = "${WORKDIR}/git"
+SRCREV = "82fa0c6d03b00dc84b6a64ba91f42c35762dd903"
 
 export PYTHON = "${USRBINPATH}/python3"
 
-M="${@d.getVar('MACHINE').replace('-64b','').replace('-32b','').replace('-${SITEINFO_ENDIANNESS}','')}"
+M = "${@d.getVar('MACHINE').replace('-64b','').replace('-32b','').replace('-${SITEINFO_ENDIANNESS}','')}"
 
-BOARD_TARGETS="${M}"
-BOARD_TARGETS:ls2088ardb="${M} ${M}_rev1.1"
-BOARD_TARGETS:ls1088ardb-pb="ls1088ardb"
+BOARD_TARGETS = "${M}"
+BOARD_TARGETS:ls2088ardb = "${M} ${M}_rev1.1"
+BOARD_TARGETS:ls1088ardb-pb = "ls1088ardb"
 BOARD_TARGETS:lx2160ardb = "${M} ${M}_rev2"
 BOARD_TARGETS:lx2160ardb-rev2 = "lx2160ardb_rev2"
 
@@ -36,8 +36,9 @@ do_deploy () {
 }
 addtask deploy after do_install
 
+PACKAGE_ARCH = "${MACHINE_ARCH}"
+
 PACKAGES += "${PN}-image"
 FILES:${PN}-image += "/boot"
 
 COMPATIBLE_MACHINE = "(qoriq)"
-PACKAGE_ARCH = "${MACHINE_ARCH}"

@@ -1,7 +1,9 @@
 SUMMARY = "PPFE Linux firmware"
+DESCRIPTION = "Packet Forwarding Engine (PFE) firmware binaries for NXP LS1012A SoCs"
+HOMEPAGE = "https://github.com/NXP/qoriq-engine-pfe-bin"
+SECTION = "firmware"
 LICENSE = "NXP-Binary-EULA"
 LIC_FILES_CHKSUM = "file://NXP-Binary-EULA.txt;md5=92723670f432558b9e2494ed177d2a85"
-
 
 INHIBIT_DEFAULT_DEPS = "1"
 
@@ -9,8 +11,6 @@ inherit deploy
 
 SRC_URI = "git://github.com/NXP/qoriq-engine-pfe-bin.git;nobranch=1;protocol=https"
 SRCREV = "f55ee9f72090309bbb7ab71f48a498fc02909234"
-
-S = "${WORKDIR}/git"
 
 do_install () {
     install -d ${D}${nonarch_base_libdir}/firmware
@@ -28,6 +28,8 @@ do_deploy () {
 addtask deploy after do_install
 
 FILES:${PN} += "${nonarch_base_libdir}/firmware /boot/"
+# Prebuilt firmware blobs: foreign target arch, already stripped.
+# nooelint: oelint.vars.insaneskip
 INSANE_SKIP:${PN} += "arch already-stripped"
 INHIBIT_PACKAGE_STRIP = "1"
 INHIBIT_SYSROOT_STRIP = "1"

@@ -1,46 +1,45 @@
 # Copyright (C) 2014,2016 Freescale Semiconductor
-# Copyright 2017-2021 NXP
+# Copyright 2017-2025 NXP
 # Copyright (C) 2012-2015 O.S. Systems Software LTDA.
 # Released under the MIT license (see COPYING.MIT for the terms)
-
-DESCRIPTION = "Gstreamer freescale plugins"
+SUMMARY = "GStreamer 1.0 plugins for i.MX"
+DESCRIPTION = "Freescale/NXP GStreamer 1.0 plugins providing hardware-accelerated \
+               multimedia (audio/video codec, capture and sink) elements for \
+               i.MX SoCs."
+HOMEPAGE = "https://github.com/nxp-imx/imx-gst1.0-plugin"
 SECTION = "multimedia"
 LICENSE = "GPL-2.0-only & LGPL-2.0-only & LGPL-2.1-only"
 LIC_FILES_CHKSUM = "file://LICENSE.txt;md5=fbc093901857fcd118f065f900982c24"
 
-DEPENDS = " \
+DEPENDS = "\
+    ${DEPENDS_IMXGPU} \
     gstreamer1.0 \
-    gstreamer1.0-plugins-base \
     gstreamer1.0-plugins-bad \
+    gstreamer1.0-plugins-base \
     imx-codec \
     imx-parser \
-    ${DEPENDS_IMXGPU} \
+    libinput \
 "
 DEPENDS:append:mx6-nxp-bsp = " imx-lib"
 DEPENDS:append:mx7-nxp-bsp = " imx-lib"
 DEPENDS:append:mx8ulp-nxp-bsp = " imx-lib"
 DEPENDS:append:mx93-nxp-bsp = " imx-lib"
+DEPENDS:append:mx943-nxp-bsp = " imx-lib"
 DEPENDS:append:imxvpu = " imx-vpuwrap"
 DEPENDS:append:imxfbdev:imxgpu = " libdrm"
-DEPENDS_IMXGPU        = ""
+DEPENDS_IMXGPU = ""
 DEPENDS_IMXGPU:imxgpu = "${DEPENDS_IMX_OPENCL_CONVERTER}"
-DEPENDS_IMX_OPENCL_CONVERTER               = ""
-DEPENDS_IMX_OPENCL_CONVERTER:mx8-nxp-bsp   = "imx-opencl-converter"
+DEPENDS_IMX_OPENCL_CONVERTER = "imx-opencl-converter"
+DEPENDS_IMX_OPENCL_CONVERTER:mx6-nxp-bsp = ""
+DEPENDS_IMX_OPENCL_CONVERTER:mx7-nxp-bsp = ""
 DEPENDS_IMX_OPENCL_CONVERTER:mx8mm-nxp-bsp = ""
-DEPENDS_IMX_OPENCL_CONVERTER:mx95-nxp-bsp   = "imx-opencl-converter"
 
-# For backwards compatibility
-RREPLACES:${PN}  = "gst1.0-fsl-plugin"
-RPROVIDES:${PN}  = "gst1.0-fsl-plugin"
-RCONFLICTS:${PN} = "gst1.0-fsl-plugin"
+PV = "4.11.0+git${SRCPV}"
 
-PV = "4.9.1+git${SRCPV}"
-
-SRC_URI = "git://github.com/nxp-imx/imx-gst1.0-plugin.git;protocol=https;branch=${SRCBRANCH}"
-SRCBRANCH = "MM_04.09.01_2408_L6.6.y"
-SRCREV = "87135d5f084b6c61efa6671cddc3a5509ab11640"
-
-S = "${WORKDIR}/git"
+SRC_URI = "${IMXGST_SRC};branch=${SRCBRANCH}"
+IMXGST_SRC ?= "git://github.com/nxp-imx/imx-gst1.0-plugin.git;protocol=https"
+SRCBRANCH = "MM_04.11.00_2605_L6.18.20"
+SRCREV = "e0b7f80ac98c866e9396aff8cd93221b65ba8667"
 
 inherit meson pkgconfig use-imx-headers
 
@@ -49,35 +48,17 @@ PLATFORM:mx6sl-nxp-bsp = "MX6SL"
 PLATFORM:mx6sx-nxp-bsp = "MX6SX"
 PLATFORM:mx6ul-nxp-bsp = "MX6UL"
 PLATFORM:mx6sll-nxp-bsp = "MX6SLL"
-PLATFORM:mx7-nxp-bsp= "MX7D"
-PLATFORM:mx7ulp-nxp-bsp= "MX7ULP"
+PLATFORM:mx7-nxp-bsp = "MX7D"
+PLATFORM:mx7ulp-nxp-bsp = "MX7ULP"
 PLATFORM:mx8-nxp-bsp = "MX8"
 PLATFORM:mx9-nxp-bsp = "MX9"
 
-CFLAGS:append:toolchain-clang = " -Wno-implicit-int -Wno-int-conversion -Wno-incompatible-function-pointer-types"
-# GCC-14 otherwise errors out
-CFLAGS += " \
-    -Wno-error=int-conversion \
-    -Wno-error=incompatible-pointer-types \
-    -Wno-error=return-mismatch \
-    -Wno-error=implicit-function-declaration \
-"
+CFLAGS:append = " -Wno-maybe-uninitialized -Wno-unused-but-set-variable"
 
 # Todo add a mechanism to map possible build targets
 EXTRA_OEMESON = "-Dplatform=${PLATFORM} \
                  -Dc_args="${CFLAGS} -I${STAGING_INCDIR_IMX}" \
 "
-
-PACKAGES =+ "${PN}-gplay ${PN}-libgplaycore ${PN}-libgstfsl ${PN}-grecorder ${PN}-librecorder-engine ${PN}-libplayengine"
-
-# Add codec list that the beep plugin run-time depended
-BEEP_RDEPENDS = "imx-codec-aac imx-codec-mp3 imx-codec-oggvorbis"
-RDEPENDS:${PN} += "imx-parser ${BEEP_RDEPENDS} gstreamer1.0-plugins-good-id3demux "
-RDEPENDS:${PN}:append:mx8qm-nxp-bsp  = " imx-dsp"
-RDEPENDS:${PN}:append:mx8qxp-nxp-bsp = " imx-dsp"
-RDEPENDS:${PN}:append:mx8dx-nxp-bsp  = " imx-dsp"
-RDEPENDS:${PN}:append:mx8mp-nxp-bsp  = " imx-dsp"
-RDEPENDS:${PN}:append:mx8ulp-nxp-bsp = " imx-dsp"
 
 PACKAGECONFIG ?= ""
 
@@ -90,16 +71,34 @@ MSDEPENDS = "imx-msparser imx-mscodec"
 PACKAGECONFIG[wma10dec] = ",,${MSDEPENDS},${MSDEPENDS}"
 PACKAGECONFIG[wma8enc] = ",,${MSDEPENDS},${MSDEPENDS}"
 
-FILES:${PN} = "${libdir}/gstreamer-1.0/*.so ${datadir}"
+PACKAGES =+ "${PN}-tools ${PN}-libgstfsl"
 
+# Deliberately replace the default main-package file list so the (unversioned)
+# GStreamer plugin .so files land in ${PN} instead of ${PN}-dev.
+# nooelint: oelint.var.filesoverride
+FILES:${PN} = "${libdir}/gstreamer-1.0/*.so ${datadir}"
 FILES:${PN}-dbg += "${libdir}/gstreamer-1.0/.debug"
 FILES:${PN}-dev += "${libdir}/gstreamer-1.0/*.la ${libdir}/pkgconfig/*.pc"
-FILES:${PN}-staticdev += "${libdir}/gstreamer-1.0/*.a"
-FILES:${PN}-gplay = "${bindir}/gplay-1.0"
-FILES:${PN}-libgplaycore = "${libdir}/libgplaycore-1.0${SOLIBS}"
-FILES:${PN}-libgstfsl = "${libdir}/libgstfsl-1.0${SOLIBS}"
-FILES:${PN}-grecorder = "${bindir}/grecorder-1.0"
-FILES:${PN}-librecorder-engine = "${libdir}/librecorder_engine-1.0${SOLIBS}"
-FILES:${PN}-libplayengine = "${libdir}/libplayengine-1.0${SOLIBS}"
+FILES:${PN}-tools += "${bindir}/* ${libdir}/librecorder_engine-1.0${SOLIBS}"
+FILES:${PN}-libgstfsl += "${libdir}/libgstfsl-1.0${SOLIBS}"
+
+# Add codec list that the beep plugin run-time depended
+BEEP_RDEPENDS = "imx-codec-aac imx-codec-mp3 imx-codec-oggvorbis"
+RDEPENDS:${PN} += "${BEEP_RDEPENDS} gstreamer1.0-plugins-good-id3demux imx-mp4-parser imx-parser"
+RDEPENDS:${PN}:append:mx8qm-nxp-bsp = " imx-dsp"
+RDEPENDS:${PN}:append:mx8qxp-nxp-bsp = " imx-dsp"
+RDEPENDS:${PN}:append:mx8dx-nxp-bsp = " imx-dsp"
+RDEPENDS:${PN}:append:mx8mp-nxp-bsp = " imx-dsp"
+RDEPENDS:${PN}:append:mx8ulp-nxp-bsp = " imx-dsp"
+
+# The plugins pull in codec/parser build dependencies conditionally through
+# PACKAGECONFIG, so the static build-deps QA check cannot see them all.
+# nooelint: oelint.vars.insaneskip
+INSANE_SKIP:${PN} = "build-deps"
+
+# Runtime backwards compatibility with the old gst1.0-fsl-plugin name
+RREPLACES:${PN} = "gst1.0-fsl-plugin"
+RPROVIDES:${PN} = "gst1.0-fsl-plugin"
+RCONFLICTS:${PN} = "gst1.0-fsl-plugin"
 
 COMPATIBLE_MACHINE = "(imx-nxp-bsp)"

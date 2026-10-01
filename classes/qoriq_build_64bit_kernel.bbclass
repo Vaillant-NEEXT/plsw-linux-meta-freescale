@@ -1,6 +1,11 @@
 inherit features_check
-REQUIRED_DISTRO_FEATURES:e6500 += "multiarch"
+REQUIRED_DISTRO_FEATURES:append:e6500 = " multiarch"
 
+# BUILD_64BIT_KERNEL is this class's interface, not a machine override: any
+# machine that sets it gets the promotion, and in-tree only e6500.inc does.
+# KERNEL_CC, KERNEL_LD and KERNEL_AR are replaced only when the flag is set;
+# expressing that declaratively means restating kernel.bbclass defaults here.
+# nooelint: oelint.vars.noncoreoverride oelint.task.noanonpython
 python () {
     promote_kernel = d.getVar('BUILD_64BIT_KERNEL', False)
     if promote_kernel == "1":
@@ -12,7 +17,7 @@ python () {
         d.setVar('KERNEL_LD', d.getVar('CCACHE', False) + sys_multilib + '-' + 'ld.bfd' + d.getVar('HOST_LD_KERNEL_ARCH', False) + tc_options)
         d.setVar('KERNEL_AR', d.getVar('CCACHE', False) + sys_multilib + '-' + 'ar' + d.getVar('HOST_AR_KERNEL_ARCH', False))
 
-    error_qa = d.getVar('ERROR_QA')
-    if 'arch' in error_qa:
-        d.setVar('ERROR_QA', error_qa.replace(' arch', ''))
+        error_qa = (d.getVar('ERROR_QA') or '').split()
+        if 'arch' in error_qa:
+            d.setVar('ERROR_QA', ' '.join(flag for flag in error_qa if flag != 'arch'))
 }
